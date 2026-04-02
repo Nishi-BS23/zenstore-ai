@@ -1,11 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+import logging
 
 from app.api.deps import get_current_user, get_db
 from app.models.user import User
 from app.schemas.product import ProductCreate, ProductRead, ProductUpdate
 from app.services.product_service import ProductService
+from app.workers.tasks import generate_ai_content
 
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -26,6 +30,10 @@ def create_product(
 		description=product_in.description,
 		category=product_in.category,
 	)
+	try:
+		generate_ai_content.delay(product.id)
+	except Exception as exc:  # noqa: BLE001 - background dispatch must not fail the API
+		logger.warning("Failed to enqueue generate_ai_content for product %s: %s", product.id, exc)
 	return product
 
 
