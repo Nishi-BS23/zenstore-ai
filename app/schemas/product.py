@@ -17,6 +17,11 @@ class ProductCreate(ProductBase):
 	pass
 
 
+class ProductCreateResponse(BaseModel):
+	status: str
+	message: str
+
+
 class ProductUpdate(BaseModel):
 	name: str | None = None
 	price: float | None = None
