@@ -34,3 +34,22 @@ uvicorn app.main:app --host 0.0.0.0 --port 9072 --reload
 ```bash
 curl http://127.0.0.1:9072/health
 ```
+
+## Migrations
+
+Migration naming convention:
+
+- `YYYYMMDD_0001_description`
+- Example: `20250819_0001_add_user_account_deactivations`
+
+Create a new migration using the helper script:
+
+```bash
+./scripts/new_migration.sh "add user account deactivations"
+```
+
+Apply migrations:
+
+```bash
+/home/bs00956/Desktop/Personal/zenstore-ai/venv/bin/python -m alembic upgrade head
+```

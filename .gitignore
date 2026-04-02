@@ -18,7 +18,10 @@ dist/
 # Testing and coverage
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
+.mypy_cache/
+.ruff_cache/
 
 # IDE/editor
 .vscode/
@@ -27,6 +30,11 @@ htmlcov/
 # Environment files
 .env
 .env.*
+!.env.example
 
 # Logs
 *.log
+
+# Local databases
+*.db
+*.sqlite3
