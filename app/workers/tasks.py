@@ -2,15 +2,14 @@ from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
 from app.models.product import Product, ProductStatus
+from app.models.user import User  # noqa: F401
 from app.services.ai_service import AIService
 from app.workers.celery_app import celery_app
 
 
 def _fallback_content(product: Product) -> dict[str, str]:
 	"""Fallback content when AI generation fails."""
-	description = product.description or product.details or product.name
-	category = product.category or "uncategorized"
-	return {"description": description, "category": category}
+	return AIService.default_content_from_name(product.name)
 
 
 @celery_app.task(name="generate_ai_content")
