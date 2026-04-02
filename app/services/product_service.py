@@ -2,12 +2,14 @@ from sqlalchemy.orm import Session
 
 from app.models.product import Product, ProductStatus
 from app.models.user import User
+from app.utils.decorators import performance_logger
 
 
 class ProductService:
 	"""Service for product operations with owner-based access control."""
 
 	@staticmethod
+	@performance_logger
 	def create_product(
 		name: str,
 		price: float,
@@ -34,6 +36,7 @@ class ProductService:
 		return product
 
 	@staticmethod
+	@performance_logger
 	def get_product_by_id(product_id: str, owner: User, db: Session) -> Product | None:
 		"""Get product by ID only if owner matches."""
 		product = db.query(Product).filter(
@@ -43,6 +46,7 @@ class ProductService:
 		return product
 
 	@staticmethod
+	@performance_logger
 	def list_products(owner: User, db: Session, skip: int = 0, limit: int = 100) -> list[Product]:
 		"""List all products for the authenticated user."""
 		products = db.query(Product).filter(
@@ -51,6 +55,7 @@ class ProductService:
 		return products
 
 	@staticmethod
+	@performance_logger
 	def update_product(
 		product_id: str,
 		owner: User,
@@ -89,6 +94,7 @@ class ProductService:
 		return product
 
 	@staticmethod
+	@performance_logger
 	def delete_product(product_id: str, owner: User, db: Session) -> bool:
 		"""Delete product only if owner matches."""
 		product = db.query(Product).filter(
