@@ -5,3 +5,5 @@ pydantic
 pydantic-settings
 python-dotenv
 alembic
+bcrypt
+PyJWT
