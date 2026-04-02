@@ -16,6 +16,11 @@ class Settings(BaseSettings):
 	DATABASE_URL: str = "sqlite:///./zenstore.db"
 	SECRET_KEY: str = "change-me"
 	REDIS_URL: str = "redis://localhost:6379/0"
+	AI_PROVIDER: str = "groq"
+	AI_MODEL: str = "llama-3.1-8b-instant"
+	GROQ_API_KEY: str = ""
+	OPENAI_API_KEY: str = ""
+	OPENAI_BASE_URL: str = "https://api.openai.com/v1"
 
 	if SettingsConfigDict is not None:
 		model_config = SettingsConfigDict(
