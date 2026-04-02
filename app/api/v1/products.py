@@ -13,12 +13,14 @@ from app.schemas.product import (
 	ProductRead,
 	ProductUpdate,
 )
+from app.services.cache_service import CacheService
 from app.services.product_service import ProductService
 from app.utils.generators import iter_csv_rows
 from app.workers.tasks import generate_ai_content
 
 
 logger = logging.getLogger(__name__)
+cache_service = CacheService()
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -112,13 +114,23 @@ def get_product(
 	db: Session = Depends(get_db),
 ):
 	"""Get a product by ID."""
+	cached_product = cache_service.get_product(product_id)
+	if cached_product and cached_product.get("owner_id") == current_user.id:
+		cached_status = cached_product.get("status")
+		if cached_status == "done":
+			return ProductRead.model_validate(cached_product)
+
 	product = ProductService.get_product_by_id(product_id, current_user, db)
 	if not product:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
 			detail="Product not found",
 		)
-	return product
+
+	product_read = ProductRead.model_validate(product)
+	if product_read.status.value == "done":
+		cache_service.set_product(product_id, product_read.model_dump(mode="json"))
+	return product_read
 
 
 @router.get("", response_model=list[ProductRead])
@@ -157,6 +169,7 @@ def update_product(
 			status_code=status.HTTP_404_NOT_FOUND,
 			detail="Product not found",
 		)
+	cache_service.invalidate_product(product_id)
 	return product
 
 
@@ -173,5 +186,6 @@ def delete_product(
 			status_code=status.HTTP_404_NOT_FOUND,
 			detail="Product not found",
 		)
+	cache_service.invalidate_product(product_id)
 	return None
 

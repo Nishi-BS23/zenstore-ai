@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.core.database import SessionLocal
 from app.models.product import Product, ProductStatus
 from app.models.user import User  # noqa: F401
+from app.services.cache_service import CacheService
 from app.services.ai_service import AIService
 from app.workers.celery_app import celery_app
 
@@ -15,6 +16,7 @@ def _fallback_content(product: Product) -> dict[str, str]:
 @celery_app.task(name="generate_ai_content")
 def generate_ai_content(product_id: str) -> dict[str, str]:
 	"""Fetch a product, generate AI content, and persist results asynchronously."""
+	cache_service = CacheService()
 	db: Session = SessionLocal()
 	try:
 		product = db.query(Product).filter(Product.id == product_id).first()
@@ -34,6 +36,7 @@ def generate_ai_content(product_id: str) -> dict[str, str]:
 
 		db.commit()
 		db.refresh(product)
+		cache_service.invalidate_product(product.id)
 		return {
 			"status": product.status.value,
 			"product_id": product.id,
