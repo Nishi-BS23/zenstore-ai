@@ -1,11 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 import logging
+import uuid
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.models.user import User
-from app.schemas.product import ProductCreate, ProductCreateResponse, ProductRead, ProductUpdate
+from app.schemas.product import (
+	ProductBulkUploadResponse,
+	ProductCreate,
+	ProductCreateResponse,
+	ProductRead,
+	ProductUpdate,
+)
 from app.services.product_service import ProductService
+from app.utils.generators import iter_csv_rows
 from app.workers.tasks import generate_ai_content
 
 
@@ -37,6 +46,62 @@ def create_product(
 	return {
 		"status": "pending",
 		"message": "AI processing started",
+	}
+
+
+@router.post("/bulk", response_model=ProductBulkUploadResponse, status_code=status.HTTP_202_ACCEPTED)
+def bulk_upload_products(
+	file: UploadFile = File(...),
+	current_user: User = Depends(get_current_user),
+	db: Session = Depends(get_db),
+):
+	"""Upload products from CSV in streaming mode and queue AI jobs per row."""
+	if not file.filename or not file.filename.lower().endswith(".csv"):
+		raise HTTPException(
+			status_code=status.HTTP_400_BAD_REQUEST,
+			detail="Please upload a CSV file",
+		)
+
+	job_id = str(uuid.uuid4())
+	processed_count = 0
+
+	for row_number, row in iter_csv_rows(file.file):
+		name = row.get("name", "")
+		price_value = row.get("price", "")
+		details = row.get("details", "")
+
+		if not name or not price_value or not details:
+			logger.warning("Skipping CSV row %s due to missing required fields", row_number)
+			continue
+
+		try:
+			price = float(price_value)
+			if price <= 0:
+				raise ValueError("price must be positive")
+		except ValueError:
+			logger.warning("Skipping CSV row %s due to invalid price: %s", row_number, price_value)
+			continue
+
+		product = ProductService.create_product(
+			name=name,
+			price=price,
+			details=details,
+			owner=current_user,
+			db=db,
+			description=row.get("description") or None,
+			category=row.get("category") or None,
+		)
+
+		try:
+			generate_ai_content.delay(product.id)
+		except Exception as exc:  # noqa: BLE001 - background dispatch must not fail bulk upload
+			logger.warning("Failed to enqueue generate_ai_content for product %s: %s", product.id, exc)
+
+		processed_count += 1
+
+	return {
+		"job_id": job_id,
+		"message": f"Bulk upload accepted. {processed_count} products queued for AI processing.",
 	}
 
 
