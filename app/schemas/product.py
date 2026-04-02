@@ -22,6 +22,11 @@ class ProductCreateResponse(BaseModel):
 	message: str
 
 
+class ProductBulkUploadResponse(BaseModel):
+	job_id: str
+	message: str
+
+
 class ProductUpdate(BaseModel):
 	name: str | None = None
 	price: float | None = None
