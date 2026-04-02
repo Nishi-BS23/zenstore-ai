@@ -4,7 +4,7 @@ import logging
 
 from app.api.deps import get_current_user, get_db
 from app.models.user import User
-from app.schemas.product import ProductCreate, ProductRead, ProductUpdate
+from app.schemas.product import ProductCreate, ProductCreateResponse, ProductRead, ProductUpdate
 from app.services.product_service import ProductService
 from app.workers.tasks import generate_ai_content
 
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/products", tags=["products"])
 
 
-@router.post("", response_model=ProductRead, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ProductCreateResponse, status_code=status.HTTP_201_CREATED)
 def create_product(
 	product_in: ProductCreate,
 	current_user: User = Depends(get_current_user),
@@ -34,7 +34,10 @@ def create_product(
 		generate_ai_content.delay(product.id)
 	except Exception as exc:  # noqa: BLE001 - background dispatch must not fail the API
 		logger.warning("Failed to enqueue generate_ai_content for product %s: %s", product.id, exc)
-	return product
+	return {
+		"status": "pending",
+		"message": "AI processing started",
+	}
 
 
 @router.get("/{product_id}", response_model=ProductRead)
