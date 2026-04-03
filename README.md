@@ -43,6 +43,8 @@ Set `REDIS_URL` in `.env` if Redis is not on the default local port:
 
 ```env
 REDIS_URL=redis://localhost:6379/0
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+REFRESH_TOKEN_EXPIRE_DAYS=7
 ```
 
 ## Health Check
