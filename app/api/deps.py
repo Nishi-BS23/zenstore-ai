@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.database import SessionLocal
 from app.core.security import decode_jwt_token
 from app.models.user import User
+from app.repositories.user_repository import UserRepository
 
 
 def get_db() -> Generator[Session, None, None]:
@@ -63,7 +64,7 @@ def get_current_user(
 			detail="Invalid token",
 		)
 
-	user = db.query(User).filter(User.id == user_id).first()
+	user = UserRepository(db).get_by_id(user_id)
 	if not user:
 		raise HTTPException(
 			status_code=status.HTTP_401_UNAUTHORIZED,

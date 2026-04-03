@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.core.database import SessionLocal
 from app.models.product import Product, ProductStatus
 from app.models.user import User  # noqa: F401
+from app.repositories.product_repository import ProductRepository
 from app.services.cache_service import CacheService
 from app.services.ai_service import AIService
 from app.workers.celery_app import celery_app
@@ -19,29 +20,34 @@ def generate_ai_content(product_id: str) -> dict[str, str]:
 	cache_service = CacheService()
 	db: Session = SessionLocal()
 	try:
-		product = db.query(Product).filter(Product.id == product_id).first()
+		repo = ProductRepository(db)
+		product = repo.get_by_id_any_owner(product_id)
 		if not product:
 			return {"status": "missing", "product_id": product_id}
 
 		try:
 			content = AIService.generate(product)
-			product.description = content["description"]
-			product.category = content["category"]
-			product.status = ProductStatus.done
+			updated = repo.update(
+				product,
+				description=content["description"],
+				category=content["category"],
+				status=ProductStatus.done,
+			)
 		except Exception:
 			content = _fallback_content(product)
-			product.description = content["description"]
-			product.category = content["category"]
-			product.status = ProductStatus.failed
+			updated = repo.update(
+				product,
+				description=content["description"],
+				category=content["category"],
+				status=ProductStatus.failed,
+			)
 
-		db.commit()
-		db.refresh(product)
-		cache_service.invalidate_product(product.id)
+		cache_service.invalidate_product(updated.id)
 		return {
-			"status": product.status.value,
-			"product_id": product.id,
-			"description": product.description or "",
-			"category": product.category or "",
+			"status": updated.status.value,
+			"product_id": updated.id,
+			"description": updated.description or "",
+			"category": updated.category or "",
 		}
 	finally:
 		db.close()
