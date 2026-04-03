@@ -25,7 +25,7 @@ cache_service = CacheService()
 router = APIRouter(prefix="/products", tags=["products"])
 
 
-@router.post("", response_model=ProductCreateResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ProductCreateResponse, status_code=status.HTTP_202_ACCEPTED)
 def create_product(
 	product_in: ProductCreate,
 	current_user: User = Depends(get_current_user),

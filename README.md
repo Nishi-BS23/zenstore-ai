@@ -29,6 +29,22 @@ Start the API on port `9072`:
 uvicorn app.main:app --host 0.0.0.0 --port 9072 --reload
 ```
 
+## Celery Worker
+
+Run the background worker with Redis as broker/backend:
+
+```bash
+celery -A app.workers.celery_app.celery_app worker --loglevel=info
+```
+
+## Redis
+
+Set `REDIS_URL` in `.env` if Redis is not on the default local port:
+
+```env
+REDIS_URL=redis://localhost:6379/0
+```
+
 ## Health Check
 
 ```bash
