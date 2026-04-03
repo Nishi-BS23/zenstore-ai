@@ -120,16 +120,16 @@ The application reads configuration from environment variables, typically stored
 ### Environment Variables
 
 ```env
-# Database Configuration
 DATABASE_URL=sqlite:///./zenstore.db
-
-# Security
-SECRET_KEY=replace-with-a-long-random-secret-key-min-32-chars
-
-# Redis Configuration
-REDIS_URL=redis://localhost:6379/0
+SECRET_KEY=replace-with-a-secure-secret-key
 ACCESS_TOKEN_EXPIRE_MINUTES=60
 REFRESH_TOKEN_EXPIRE_DAYS=7
+REDIS_URL=redis://localhost:6379/0
+AI_PROVIDER=groq
+AI_MODEL=llama-3.1-8b-instant
+GROQ_API_KEY=
+OPENAI_API_KEY=
+OPENAI_BASE_URL=https://api.openai.com/v1
 ```
 
 ## Health Check
