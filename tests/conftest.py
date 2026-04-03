@@ -1,5 +1,6 @@
 from pathlib import Path
 from collections.abc import Generator
+import uuid
 
 import pytest
 from fastapi.testclient import TestClient
@@ -55,3 +56,25 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(scope="function")
+def auth_headers(client: TestClient) -> dict[str, str]:
+    """Create a fresh user and return Bearer headers for authenticated requests."""
+    email = f"test-{uuid.uuid4()}@example.com"
+    password = "Password123"
+
+    register_res = client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": password},
+    )
+    assert register_res.status_code == 201
+
+    login_res = client.post(
+        "/api/v1/auth/login",
+        json={"email": email, "password": password},
+    )
+    assert login_res.status_code == 200
+    token = login_res.json()["access_token"]
+
+    return {"Authorization": f"Bearer {token}"}
