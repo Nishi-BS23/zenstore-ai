@@ -3,7 +3,13 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_current_user
 from app.models.user import User
-from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse, UserResponse
+from app.schemas.auth import (
+	LoginRequest,
+	RefreshTokenRequest,
+	RegisterRequest,
+	TokenResponse,
+	UserResponse,
+)
 from app.services.auth_service import AuthService
 
 
@@ -24,8 +30,26 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)) -> User:
 def login(req: LoginRequest, db: Session = Depends(get_db)) -> dict:
 	"""Login user and return JWT token."""
 	try:
-		user, token = AuthService.login_user(req.email, req.password, db)
-		return {"access_token": token, "token_type": "bearer"}
+		user, access_token, refresh_token = AuthService.login_user(req.email, req.password, db)
+		return {
+			"access_token": access_token,
+			"refresh_token": refresh_token,
+			"token_type": "bearer",
+		}
+	except ValueError as e:
+		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+
+
+@router.post("/refresh", response_model=TokenResponse)
+def refresh(req: RefreshTokenRequest, db: Session = Depends(get_db)) -> dict:
+	"""Refresh access token using a valid refresh token."""
+	try:
+		access_token = AuthService.refresh_access_token(req.refresh_token, db)
+		return {
+			"access_token": access_token,
+			"refresh_token": req.refresh_token,
+			"token_type": "bearer",
+		}
 	except ValueError as e:
 		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
 
