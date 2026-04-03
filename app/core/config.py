@@ -15,6 +15,8 @@ ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
 class Settings(BaseSettings):
 	DATABASE_URL: str = "sqlite:///./zenstore.db"
 	SECRET_KEY: str = "change-me"
+	ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+	REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 	REDIS_URL: str = "redis://localhost:6379/0"
 	AI_PROVIDER: str = "groq"
 	AI_MODEL: str = "llama-3.1-8b-instant"
