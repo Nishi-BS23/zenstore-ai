@@ -12,24 +12,34 @@ Built with a focus on **scalability**, **security**, and **maintainability**, th
 - **Secure session management** with configurable token expiration
 
 ### Product Management
-- **RESTful CRUD APIs** for comprehensive product lifecycle management
-- **Owner-scoped data isolation** ensuring multi-tenant security
+- **RESTful CRUD APIs** for product listing and single addition
+- **Owner-scoped data isolation** ensuring user data privacy
 - **Real-time validation** and robust error handling
 
 ### AI-Powered Enrichment
-- **Asynchronous AI content generation** via Celery task queue
-- **Multiple AI provider support** (Groq, OpenAI) with flexible configuration
-- **Intelligent product descriptions** and metadata enhancement
+- **Asynchronous AI content generation** via Celery task queue (non-blocking)
+- **Free API integration** (Groq, OpenAI) for LLM-powered content transformation
+- **Catchy 2-sentence product descriptions** automatically generated from product names
+- **Intelligent category classification** based on product characteristics
 
 ### Data Processing & Storage
 - **High-performance CSV bulk ingestion** with streaming row processing
 - **Cache-aside Redis strategy** for optimal read performance
 - **Repository pattern implementation** for consistent data access
+- **Python Generators** for efficient batch file processing
 
 ### Testing & Quality Assurance
 - **Comprehensive pytest suite** with isolated SQLite test database
 - **Automated test fixtures** and deterministic test results
 - **API contract testing** with full coverage validation
+
+### Technical Implementation
+- **OOP Principles** with clean layered architecture
+- **Custom Decorator** for performance logging
+- **Python Generators** for efficient batch file processing
+- **Caching Layer** with Redis for optimal performance
+- **JWT Authentication** for secure user data isolation
+- **Swagger Documentation** for API testing
 
 ## 🛠️ Technology Stack
 
@@ -393,12 +403,21 @@ Content-Type: application/json
 
 {
   "name": "Premium Widget",
-  "description": "High-quality widget for professional use",
-  "price": 99.99,
-  "category": "electronics"
+  "price": 99.99
 }
 ```
 **Response:** `202 Accepted` (AI enrichment queued)
+
+**After AI Processing:**
+```json
+{
+  "id": "product-uuid",
+  "name": "Premium Widget",
+  "price": 99.99,
+  "description": "Experience premium quality with this professional-grade widget designed for excellence. This innovative product combines superior craftsmanship with cutting-edge technology to deliver outstanding performance.",
+  "category": "electronics",
+  "status": "done"
+}
 
 #### Get All Products
 ```http
@@ -447,9 +466,17 @@ file: products.csv
 ```
 **CSV Format:**
 ```csv
-name,description,price,category
-Product 1,Description 1,29.99,electronics
-Product 2,Description 2,49.99,home
+name,price
+Premium Widget,99.99
+Comfort Chair,149.99
+Coffee Maker,79.99
+```
+**After AI Processing:**
+```csv
+name,price,description,category
+Premium Widget,99.99,"Experience premium quality with this professional-grade widget designed for excellence. This innovative product combines superior craftsmanship with cutting-edge technology.","electronics"
+Comfort Chair,149.99,"Transform your workspace with this ergonomically designed chair that provides ultimate comfort and support. The modern styling and premium materials make it perfect for long hours of productive work.","furniture"
+Coffee Maker,79.99,"Start your day perfectly with this intelligent coffee maker that brews exceptional coffee every time. The sleek design and advanced features ensure you get the perfect cup with minimal effort.","appliances"
 ```
 **Response:** `202 Accepted`
 ```json
@@ -480,7 +507,7 @@ Product 2,Description 2,49.99,home
 {
   "detail": "Error message description",
   "error_code": "VALIDATION_ERROR",
-  "timestamp": "2024-01-01T12:00:00Z"
+  "timestamp": "2026-01-01T12:00:00Z"
 }
 ```
 
@@ -1124,7 +1151,7 @@ uvicorn app.main:app --log-level debug
 
 **Zenstore AI** is an internal project developed for production use.
 
-© 2024 Zenstore AI. All rights reserved.
+© 2026 Zenstore AI. All rights reserved.
 
 ---
 
@@ -1167,4 +1194,4 @@ For technical support and questions:
 
 ---
 
-*Last updated: January 2024*
+*Last updated: January 2026*
