@@ -10,3 +10,5 @@ PyJWT
 celery
 redis
 python-multipart
+pytest
+httpx
