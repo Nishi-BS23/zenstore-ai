@@ -529,12 +529,10 @@ zenstore-ai/
 │   ├── versions/              # Migration scripts
 │   └── alembic.ini            # Alembic configuration
 ├── scripts/                    # Utility scripts
-│   ├── new_migration.sh       # Migration generation script
-│   └── run_tests.sh           # Test execution script
-├── docker/                     # Docker configuration files
-│   ├── Dockerfile             # Application container definition
-│   ├── docker-compose.yml     # Multi-container orchestration
-│   └── .env.docker            # Docker environment variables
+│   └── new_migration.sh       # Migration generation script
+├── docker-compose.yml          # Multi-container orchestration
+├── Dockerfile                  # Application container definition
+├── .env.docker                 # Docker environment variables
 ├── requirements.txt            # Python dependencies
 ├── .env.example               # Environment variable template
 ├── .gitignore                 # Git ignore patterns
@@ -558,7 +556,7 @@ graph TB
         DB[PostgreSQL Container]
     end
     
-    LB[Load Balancer] --> API
+    Client --> API
     API --> Redis
     API --> DB
     Worker --> Redis
@@ -567,10 +565,9 @@ graph TB
 
 ### Docker Configuration Files
 
-- **`Dockerfile`** - Multi-stage build for production-optimized images
+- **`Dockerfile`** - Single-stage build for application container
 - **`docker-compose.yml`** - Multi-container orchestration with service definitions
 - **`.env.docker`** - Environment-specific configuration for containers
-- **`docker-compose.override.yml`** - Development overrides (optional)
 
 ### Port Mapping (Host → Container)
 
@@ -585,9 +582,8 @@ graph TB
 
 #### 1. Environment Setup
 ```bash
-# Copy and configure environment
-cp .env.docker.example .env.docker
 # Edit .env.docker with your configuration
+# .env.docker already exists with default values
 ```
 
 #### 2. Build and Launch Services
@@ -636,55 +632,14 @@ docker compose exec redis redis-cli ping
 #### Environment Configuration
 ```env
 # .env.docker - Production settings
-DATABASE_URL=postgresql://postgres:secure_password@db:5432/zenstore_prod
+DATABASE_URL=postgresql://postgres:postgres@db:5432/zenstore
 REDIS_URL=redis://redis:6379/0
-SECRET_KEY=your-super-secure-production-secret-key-32-chars
+SECRET_KEY=your-prod-secret-key-32chars
 AI_PROVIDER=groq
 AI_MODEL=llama-3.1-8b-instant
-GROQ_API_KEY=your-production-groq-api-key
-OPENAI_API_KEY=your-production-openai-api-key
+GROQ_API_KEY=your-key-here
+OPENAI_API_KEY=
 OPENAI_BASE_URL=https://api.openai.com/v1
-
-# Production optimizations
-CACHE_TTL=3600
-MAX_WORKERS=4
-LOG_LEVEL=INFO
-```
-
-#### Docker Compose Production Configuration
-```yaml
-# docker-compose.prod.yml - Production overrides
-version: '3.8'
-services:
-  api:
-    restart: unless-stopped
-    deploy:
-      replicas: 2
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 256M
-  
-  worker:
-    restart: unless-stopped
-    deploy:
-      replicas: 3
-      resources:
-        limits:
-          memory: 256M
-  
-  redis:
-    restart: unless-stopped
-    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
-  
-  db:
-    restart: unless-stopped
-    environment:
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./backups:/backups
 ```
 
 ### Docker Operations
@@ -756,18 +711,6 @@ docker system df
 
 ### Development Docker Workflow
 
-#### Hot Reload Development
-```bash
-# Use development compose file
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up
-
-# Development configuration includes:
-# - Volume mounts for code changes
-# - Debug mode enabled
-# - Auto-reload on file changes
-# - Enhanced logging
-```
-
 #### Testing in Docker
 ```bash
 # Run test suite in container
@@ -785,9 +728,7 @@ docker compose exec api pytest --cov=app --cov-report=html
 - **Use secrets management** for sensitive configuration
 - **Enable TLS** for production deployments
 - **Implement network policies** to restrict container communication
-- **Regular security scanning** of Docker images
 - **Use non-root users** within containers
-- **Enable read-only filesystems** where possible
 - **Implement resource limits** to prevent DoS attacks
 
 ### Troubleshooting Docker Issues
@@ -799,25 +740,12 @@ docker compose logs api
 
 # Database connection issues
 docker compose exec db pg_isready
-docker compose exec api python -c "from app.core.database import engine; print(engine.execute('SELECT 1').scalar())"
 
 # Redis connection issues
 docker compose exec redis redis-cli ping
 
 # Worker not processing tasks
 docker compose exec worker celery -A app.workers.celery_app.celery_app inspect active
-```
-
-#### Performance Optimization
-```bash
-# Monitor container resources
-docker stats
-
-# Optimize database performance
-docker compose exec db psql -U postgres zenstore -c "SELECT * FROM pg_stat_activity;"
-
-# Redis performance
-docker compose exec redis redis-cli info memory
 ```
 
 ## 🗃️ Database Migrations
@@ -906,14 +834,14 @@ Zenstore AI implements a **comprehensive testing strategy** with multiple test t
 
 ```mermaid
 graph TB
-    subgraph "Test Pyramid"
+    subgraph "Test Suite"
         Unit[Unit Tests]
-        Integration[Integration Tests]
-        E2E[End-to-End Tests]
+        API[API Endpoint Tests]
+        Functional[Functional Tests]
     end
     
-    Unit --> Integration
-    Integration --> E2E
+    Unit --> API
+    API --> Functional
     
     subgraph "Test Categories"
         Auth[Authentication Tests]
@@ -983,14 +911,13 @@ pytest -s --log-cli-level=DEBUG
 - **Transaction rollback** for test isolation
 - **Factory pattern** for test data generation
 
-#### Test Coverage Areas
+### Test Coverage Areas
 - **Authentication Flow**: Registration, login, token validation
 - **Authorization**: User permissions, resource ownership
 - **API Contracts**: Request/response validation
 - **Business Logic**: Service layer functionality
 - **Data Integrity**: Repository layer operations
 - **Error Handling**: Exception scenarios and edge cases
-- **Performance**: Load testing and optimization
 
 ### Test Types and Examples
 
@@ -1003,9 +930,9 @@ def test_product_creation_service(product_service, sample_product):
     assert result.id is not None
 ```
 
-#### Integration Tests
+#### API Endpoint Tests
 ```python
-# Example: API endpoint integration test
+# Example: API endpoint test
 def test_create_product_api(client, auth_headers, product_payload):
     response = client.post(
         "/products", 
@@ -1015,7 +942,7 @@ def test_create_product_api(client, auth_headers, product_payload):
     assert response.status_code == 202
 ```
 
-#### End-to-End Tests
+#### Functional Tests
 ```python
 # Example: Complete workflow test
 def test_bulk_upload_workflow(client, auth_headers, csv_file):
@@ -1027,34 +954,8 @@ def test_bulk_upload_workflow(client, auth_headers, csv_file):
     )
     assert response.status_code == 202
     
-    # Verify AI enrichment
     # Verify database state
     # Verify cache population
-```
-
-### Performance Testing
-
-#### Load Testing
-```bash
-# Install locust for load testing
-pip install locust
-
-# Run load tests
-locust -f tests/performance/locustfile.py --host=http://localhost:9072
-```
-
-#### Database Performance
-```bash
-# Profile database queries
-pytest --profile-db
-
-# Analyze query performance
-docker compose exec db psql -U postgres zenstore -c "
-SELECT query, mean_time, calls 
-FROM pg_stat_statements 
-ORDER BY mean_time DESC 
-LIMIT 10;
-"
 ```
 
 ## 🚀 Operations & Deployment
@@ -1073,43 +974,19 @@ export WORKERS=4
 
 #### Service Management
 ```bash
-# Start API server with Gunicorn
-gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:9072
+# Start API server with uvicorn
+uvicorn app.main:app --host 0.0.0.0 --port 9072 --workers 4
 
-# Start Celery workers
+# Start Celery worker
 celery -A app.workers.celery_app.celery_app worker --loglevel=info --concurrency=4
-
-# Start Celery beat for scheduled tasks
-celery -A app.workers.celery_app.celery_app beat --loglevel=info
-```
-
-#### Monitoring and Observability
-```bash
-# Application metrics
-curl http://localhost:9072/metrics
-
-# Health checks
-curl http://localhost:9072/health
-curl http://localhost:9072/health/detailed
-
-# Celery monitoring
-celery -A app.workers.celery_app.celery_app inspect active
-celery -A app.workers.celery_app.celery_app stats
 ```
 
 ### Scaling Considerations
 
 #### Horizontal Scaling
-- **API Servers**: Load balance across multiple instances
+- **API Servers**: Multiple instances for high availability
 - **Workers**: Scale based on task queue length
-- **Database**: Read replicas for read-heavy workloads
 - **Redis**: Cluster for high availability
-
-#### Performance Optimization
-- **Connection Pooling**: Optimize database connections
-- **Caching Strategy**: Implement multi-level caching
-- **Async Operations**: Maximize asynchronous processing
-- **Resource Limits**: Set appropriate memory/CPU limits
 
 ### Security Operations
 
