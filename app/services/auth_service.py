@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import create_jwt_token, hash_password, verify_password
 from app.models.user import User
+from app.repositories.user_repository import UserRepository
 
 
 class AuthService:
@@ -10,21 +11,19 @@ class AuthService:
 	@staticmethod
 	def register_user(email: str, password: str, db: Session) -> User:
 		"""Register a new user."""
-		existing = db.query(User).filter(User.email == email).first()
+		repo = UserRepository(db)
+		existing = repo.get_by_email(email)
 		if existing:
 			raise ValueError(f"User with email {email} already exists")
 
 		hashed_pwd = hash_password(password)
-		new_user = User(email=email, hashed_password=hashed_pwd)
-		db.add(new_user)
-		db.commit()
-		db.refresh(new_user)
-		return new_user
+		return repo.create(email=email, hashed_password=hashed_pwd)
 
 	@staticmethod
 	def login_user(email: str, password: str, db: Session) -> tuple[User, str]:
 		"""Authenticate user and return user + JWT token."""
-		user = db.query(User).filter(User.email == email).first()
+		repo = UserRepository(db)
+		user = repo.get_by_email(email)
 		if not user:
 			raise ValueError("Invalid email or password")
 
